@@ -379,3 +379,218 @@ This directory contains PL/SQL stored procedures, functions, and triggers that e
 | `sync_config()` | Synchronizes configuration parameters to database |
 
 > **Note:** Functions and procedures are stored in the Oracle database and are called by the Bash scripts in D05.
+
+## D09: C++ Utility or Logic Module
+
+This directory contains the C++ utility programs that validate system configuration, analyze warehouse data, and provide operational insights.
+
+### 📁 Files
+
+| File | Purpose |
+| :--- | :--- |
+| `check_configuration.cpp` | Validates configuration file correctness and parameter values |
+| `count_id_products.cpp` | Counts and reports product ID statistics from the database |
+| `low_stock_alert.cpp` | Analyzes inventory and generates alerts for low stock items |
+| `main.cpp` | Entry point for the C++ validation module |
+| `product_summary.cpp` | Generates summary reports of product inventory |
+| `warehouse_reader.cpp` | Reads and displays detailed warehouse system status |
+
+### 🔧 Module Responsibilities
+
+| Component | Function |
+| :--- | :--- |
+| **Configuration Validation** | Verifies `warehouse.conf` parameters (types, capacity limits, location mappings) |
+| **Data Analysis** | Processes inventory data and generates business reports |
+| **Alert Generation** | Identifies stock levels below configured thresholds |
+| **Pre-execution Checks** | Ensures system readiness before Bash script execution |
+
+### 🔄 Integration Points
+
+| Integration | Description |
+| :--- | :--- |
+| **Input** | Reads `warehouse.conf` and `db.conf` configuration files |
+| **Output** | Returns validation result (valid/invalid) and analysis data |
+| **Caller** | Invoked by `check_system_configuration.sh` before operations |
+| **Database** | Optionally connects to Oracle for real-time data analysis |
+
+### ⚙️ Key Validation Rules
+
+| Rule | Check Performed |
+| :--- | :--- |
+| Valid product types | Confirms types match `VALID_TYPES` list |
+| Location capacity | Verifies `MAX_ITEMS_PER_LOCATION` is numeric and positive |
+| Location mapping | Ensures each product type has an allowed location |
+| ID prefix | Validates `ID_PREFIX` is a single character |
+| Log configuration | Checks `LOG_FILE` path and `LOG_LEVEL` value |
+
+> **Note:** The C++ module is executed during system startup and commissioning to prevent configuration errors before database operations begin.
+
+---
+
+## D10: Testing & Validation
+
+This document presents the testing and validation activities performed to verify system correctness under normal and error conditions.
+
+### 📁 File
+
+| File | Purpose |
+| :--- | :--- |
+| `D10_Testing_Validation.pdf` | Documents test cases, execution results, and validation summary. |
+
+### 🧪 Test Cases Summary
+
+| Test Case | Description | Result |
+| :--- | :--- | :--- |
+| **TC1 - System Readiness Check** | Verify network connectivity and database accessibility | ✅ PASS |
+| **TC2 - Configuration Validation (C++)** | Validate configuration file correctness | ✅ PASS |
+| **TC3 - Configuration Sync** | Verify config synchronization to database | ✅ PASS |
+| **TC4 - Product Receiving (Valid)** | Store product with sufficient capacity | ✅ PASS |
+| **TC5 - Over Capacity Handling** | Reject storage when capacity exceeded | ✅ PASS |
+| **TC6 - Inventory Check** | Verify inventory reflects correct quantities | ✅ PASS |
+| **TC7 - Order Creation (Valid)** | Create order with available stock | ✅ PASS |
+| **TC8 - Order Creation (Insufficient Stock)** | Reject order when stock insufficient | ✅ PASS |
+| **TC9 - Order Processing** | Process order and update inventory | ✅ PASS |
+
+### 📋 Detailed Test Cases
+
+#### TC1 - System Readiness Check
+| Command | Output |
+| :--- | :--- |
+| `./check_network.sh` | Database connection successful |
+
+#### TC2 - Configuration Validation
+| Command | Output |
+| :--- | :--- |
+| `./check_system_configuration.sh` | Configuration is valid! |
+
+#### TC3 - Configuration Sync
+| Command | Output |
+| :--- | :--- |
+| `./sync_config_to_db.sh` | Configuration synchronized successfully |
+
+#### TC4 - Product Receiving (Valid)
+| Command | Output |
+| :--- | :--- |
+| `./receive_product.sh "Test Laptop" laptop 2` | Stored 2 items in RACK_A (2/10). Product stored with ID: P5696 |
+
+#### TC5 - Over Capacity Handling
+| Command | Output |
+| :--- | :--- |
+| `./receive_product.sh "Big Product" laptop 50` | Not enough space in RACK_A (Available: 8, Requested: 50). Product NOT stored. |
+
+#### TC6 - Inventory Check
+| Command | Output |
+| :--- | :--- |
+| `./check_inventory.sh` | Inventory report showing correct quantities per location |
+
+#### TC7 - Order Creation (Valid)
+| Command | Output |
+| :--- | :--- |
+| `./create_order.sh 1 P5696 1` | Order created: 1 (PENDING). Customer: 1, Product: P5696, Quantity: 1 |
+
+#### TC8 - Order Creation (Insufficient Stock)
+| Command | Output |
+| :--- | :--- |
+| `./create_order.sh 1 P5696 999` | Not enough stock |
+
+#### TC9 - Order Processing
+| Command | Output |
+| :--- | :--- |
+| `./process_order.sh 1` | Order 1 → SHIPPED |
+
+### 📊 Validation Summary
+
+| Category | Status |
+| :--- | :--- |
+| System Readiness | ✅ PASS |
+| Configuration | ✅ PASS |
+| Database Operations | ✅ PASS |
+| Inventory Handling | ✅ PASS |
+| Order Processing | ✅ PASS |
+| Error Handling | ✅ PASS |
+
+### ⚠️ Known Limitations
+
+- Simplified warehouse model
+- Each product type assigned to single location
+- No concurrent user handling
+- No advanced routing logic for order processing
+
+> **Note:** All core functionalities behave as expected, and validation mechanisms ensure incorrect configurations and operations are properly handled.
+
+---
+
+## D11: Executive Summary
+
+This document provides a high-level overview of the FlowCore Warehouse Simulation System, including system architecture, key functionalities, and testing outcomes.
+
+### 📁 File
+
+| File | Purpose |
+| :--- | :--- |
+| `D11_Executive_Summary.pdf` | Summarizes the project scope, architecture, functionality, and test results. |
+
+### 🏗️ System Overview
+
+The FlowCore Warehouse Simulation System simulates a configurable warehouse environment, enabling validation of real-world operations such as product storage, inventory tracking, and order processing.
+
+### 🔧 Technology Stack
+
+| Component | Technology | Role |
+| :--- | :--- | :--- |
+| **Database Layer** | Oracle Database | Data management & business logic |
+| **Script Layer** | Bash scripts | Automation and orchestration |
+| **Validation Module** | C++ | Configuration validation |
+| **Execution Environment** | Docker | Consistent deployment |
+
+> System behavior is controlled through external configuration, allowing flexibility without code changes.
+
+### ✅ Key Functionalities
+
+| Functionality | Description |
+| :--- | :--- |
+| Product receiving | With capacity validation |
+| Inventory tracking | Automatic updates |
+| Order creation | With stock checking |
+| Order processing | Automatic inventory reduction |
+
+### 🧪 Testing Results
+
+| Test Category | Outcome |
+| :--- | :--- |
+| Product receiving (valid) | ✅ PASS |
+| Product receiving (over-capacity) | ✅ PASS |
+| Inventory management | ✅ PASS |
+| Order creation (valid) | ✅ PASS |
+| Order creation (insufficient stock) | ✅ PASS |
+| Order processing | ✅ PASS |
+
+### 📌 Conclusion
+
+The system has been successfully tested under multiple scenarios, including both valid and invalid operations. All core functionalities behave as expected, and validation mechanisms ensure that incorrect configurations and operations are properly handled. The solution demonstrates a realistic and technically sound warehouse commissioning simulation.
+
+> **Note:** This document serves as the final project summary for stakeholders and evaluators.
+
+## D12: Final Team Presentation
+
+This presentation provides a comprehensive overview of the FlowCore Warehouse Simulation System project.
+
+### 📁 File
+
+| File | Purpose |
+| :--- | :--- |
+| `D12-Final_Team_Presentation.pptx` | Final project presentation covering system design, implementation, and results. |
+
+### 📑 Presentation Contents
+
+| Section | Topics Covered |
+| :--- | :--- |
+| **Introduction** | Project objectives, scope, and assumptions |
+| **System Architecture** | Component design, technology stack, data flow |
+| **Configuration & Environment** | Business rules, database setup, validation |
+| **Implementation** | Bash scripts, SQL operations, PL/SQL logic, C++ utilities |
+| **Testing & Validation** | Test cases, results, and validation summary |
+| **Demonstration** | Live system walkthrough and scenario execution |
+| **Conclusion** | Achievements, limitations, and future work |
+
+> **Note:** This presentation accompanies the final project delivery and demonstrates system functionality to stakeholders.
