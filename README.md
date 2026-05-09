@@ -215,3 +215,167 @@ This document defines the configuration files that control the behavior of the F
 - `warehouse.conf` should be committed as it contains business logic for documentation
 
 > **Note:** This document is essential for understanding how configuration drives system behavior and ensures consistent commissioning.
+
+## D05: Linux and Bash Operations Pack
+
+This directory contains the Bash automation scripts that orchestrate warehouse operations, system validation, and database interactions.
+
+### 📁 Files
+
+| File | Purpose |
+| :--- | :--- |
+| `assign_location.sh` | Assigns products to valid storage locations based on configuration |
+| `check_inventory.sh` | Checks current inventory levels per location |
+| `check_network.sh` | Validates database connectivity and network readiness |
+| `check_system_configuration.sh` | Verifies system configuration before execution |
+| `create_order.sh` | Creates new customer orders with availability validation |
+| `docker.sh` | Manages Docker container lifecycle and environment setup |
+| `export_from_db.sh` | Exports database contents for backup or analysis |
+| `my_push.sh` | Utility script for repository synchronization |
+| `process_order.sh` | Processes existing orders and updates inventory |
+| `receive_product.sh` | Handles product receiving and storage workflow |
+| `run_demo.sh` | Executes the demonstration sequence |
+| `sync_config_to_db.sh` | Synchronizes configuration files with database tables |
+| `warehouse_reader.sh` | Reads and displays warehouse system status |
+
+### 🔄 Core Workflows
+
+| Script | Function |
+| :--- | :--- |
+| **System Validation** | `check_network.sh` → `check_system_configuration.sh` |
+| **Configuration Sync** | `sync_config_to_db.sh` |
+| **Product Operations** | `receive_product.sh` → `assign_location.sh` → `check_inventory.sh` |
+| **Order Operations** | `create_order.sh` → `process_order.sh` |
+| **Demo Execution** | `run_demo.sh` |
+
+### ⚙️ Usage Notes
+
+- All scripts source configuration from `../D04_Configuration/db.conf`
+- Scripts log operations to the system log file defined in `warehouse.conf`
+- Execute `docker.sh` first to ensure the database environment is running
+- `my_push.sh` is used for development workflow only
+
+> **Note:** This pack is the primary user interaction layer of the simulation system.
+
+---
+
+## D06: Oracle Schema and Sample Data Pack
+
+This directory contains the SQL schema definition and sample data for the Oracle database backend.
+
+### 📁 Files
+
+| File | Purpose |
+| :--- | :--- |
+| `01_drop_tables.sql` | Drops existing tables for clean re-initialization |
+| `02_create_tables.sql` | Creates all database tables (`products`, `inventory`, `locations`, `orders`, `order_items`) |
+| `03_sample_data.sql` | Populates tables with sample products, locations, and inventory |
+| `07_verification.sql` | Verifies schema integrity and data correctness after setup |
+| `database.sql` | Consolidated schema file (all DDL + sample data) |
+| `README.md` | Documentation for the database schema |
+
+### 🗄️ Database Objects
+
+| Object Type | Description |
+| :--- | :--- |
+| **Tables** | `products`, `inventory`, `locations`, `orders`, `order_items` |
+| **Constraints** | Primary keys, foreign keys, check constraints, unique constraints |
+| **Indexes** | Performance optimization on foreign keys and lookup columns |
+
+### 📊 Sample Data Includes
+
+- Predefined location racks (e.g., A1, B2, C3)
+- Product types matching `warehouse.conf` configuration
+- Initial inventory quantities
+- Reference orders for testing
+
+### 🔄 Execution Order
+
+| Step | File | Action |
+| :--- | :--- | :--- |
+| 1 | `01_drop_tables.sql` | Clean existing schema |
+| 2 | `02_create_tables.sql` | Create fresh schema |
+| 3 | `03_sample_data.sql` | Load sample data |
+| 4 | `07_verification.sql` | Validate installation |
+
+> **Note:** Always execute scripts in numeric order for correct schema initialization.
+
+---
+
+## D07: SQL Operations Pack
+
+This directory contains SQL query files demonstrating various database operations for warehouse management.
+
+### 📁 Files
+
+| File | Purpose |
+| :--- | :--- |
+| `01_select_queries.sql` | Basic SELECT queries for retrieving warehouse data |
+| `02_filter_queries.sql` | Filtered queries using WHERE clauses and conditions |
+| `03_join_queries.sql` | Multi-table JOIN operations (products, inventory, orders) |
+| `04_aggregation.sql` | Aggregate functions (SUM, COUNT, AVG, GROUP BY) |
+| `05_modification.sql` | INSERT, UPDATE, DELETE operations with validation |
+| `06_report_queries.sql` | Business reports (stock levels, order summaries, etc.) |
+| `README.md` | Documentation for the SQL operations |
+
+### 📋 Query Categories
+
+| Category | Operations Covered |
+| :--- | :--- |
+| **Selection** | Retrieve all products, orders, inventory records |
+| **Filtering** | Location-based filtering, status filtering, quantity thresholds |
+| **Joins** | Product-inventory joins, order-item joins |
+| **Aggregation** | Total stock per location, order value calculations |
+| **Modification** | Update inventory, change order status, insert new products |
+| **Reporting** | Low stock alerts, order processing reports |
+
+### 🔍 Example Query Types
+
+- List all products in a specific location
+- Show pending orders with customer details
+- Calculate total inventory value per product type
+- Find locations below minimum stock threshold
+
+> **Note:** These queries assume the schema from D06 is properly initialized.
+
+---
+
+## D08: PLSQL Logic Pack
+
+This directory contains PL/SQL stored procedures, functions, and triggers that enforce business logic at the database level.
+
+### 📁 Files
+
+| File | Purpose |
+| :--- | :--- |
+| `01_functions.sql` | PL/SQL functions for reusable business calculations |
+| `02_procedures.sql` | Stored procedures for order processing and inventory management |
+| `03_triggers.sql` | Database triggers for automatic validation and auditing |
+| `README.md` | Documentation for the PL/SQL logic components |
+
+### 🔧 PL/SQL Components
+
+| Component Type | Description |
+| :--- | :--- |
+| **Functions** | Availability checks, capacity validation, stock calculations |
+| **Procedures** | `process_order`, `update_inventory`, `receive_product` |
+| **Triggers** | Before-insert validation, after-update logging, capacity enforcement |
+
+### ⚙️ Business Rules Enforced
+
+| Rule | Implementation |
+| :--- | :--- |
+| Location capacity limits | Trigger checks `MAX_ITEMS_PER_LOCATION` before insert |
+| Product-type location mapping | Function validates allowed locations from config |
+| Order availability validation | Procedure checks stock before processing |
+| Inventory consistency | Trigger updates after each modification |
+
+### 📐 Key Procedures
+
+| Procedure | Description |
+| :--- | :--- |
+| `process_order(order_id)` | Processes order, updates inventory, sets status (COMPLETED/FAILED) |
+| `receive_product(product_id, qty)` | Adds products to inventory with location validation |
+| `sync_config()` | Synchronizes configuration parameters to database |
+
+> **Note:** Functions and procedures are stored in the Oracle database and are called by the Bash scripts in D05.
